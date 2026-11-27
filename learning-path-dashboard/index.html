@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dashboard Cá nhân &amp; Lộ trình Học tập (The Learning Path) theo chuẩn HTML5 ngữ nghĩa.">
+    <meta name="description" content="Dashboard Cá nhân &amp; Lộ trình Học tập (The Learning Path) theo chuẩn HTML5 ngữ nghĩa, CSS3 thuần và Vanilla JavaScript.">
     <title>Dashboard Cá nhân &amp; Lộ trình Học tập | The Learning Path</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -11,6 +11,7 @@
 
     <!-- Thẻ <header>: Phần đầu trang chứa nhận diện dự án, tiêu đề chính và điều hướng tổng thể của Dashboard -->
     <header class="site-header">
+        <div id="scroll-progress" class="scroll-progress" aria-hidden="true"></div>
         <div class="header-container">
             <div class="brand">
                 <h1 class="brand-title">The Learning Path</h1>
@@ -40,266 +41,141 @@
     <!-- Thẻ <main>: Khối nội dung trung tâm và duy nhất của trang, bao bọc toàn bộ dữ liệu học tập, lộ trình, biểu đồ và mục tiêu cá nhân -->
     <main class="dashboard-main">
 
-        <!-- Thẻ <section>: Phân khu 1 - Tổng quan & Tiến độ chung, tổng hợp hồ sơ sinh viên, trạng thái hiện tại và mức độ hoàn thành chương trình -->
+        <!-- Thẻ <section>: Phân khu 1 - Tổng quan & Tiến độ chung, tổng hợp hồ sơ sinh viên, chỉ số GPA hệ 4 và mức độ hoàn thành chương trình -->
         <section id="overview" class="dashboard-section overview-section" aria-labelledby="overview-heading">
             <div class="section-header">
                 <h2 id="overview-heading" class="section-title">Tổng quan &amp; Tiến độ chung</h2>
-                <p class="section-desc">Cập nhật hồ sơ cá nhân và mức độ hoàn thành toàn bộ chương trình đào tạo.</p>
+                <p class="section-desc">Dữ liệu học tập, điểm trung bình tích lũy GPA hệ 4 và tiến độ hoàn thành được tính toán tự động từ <code>data.js</code>.</p>
             </div>
 
             <div class="overview-grid">
-                <!-- Thẻ <article>: Khối nội dung độc lập hiển thị thông tin cá nhân và trạng thái học tập của sinh viên -->
+                <!-- Thẻ <article>: Khối nội dung độc lập hiển thị thông tin cá nhân và thống kê học tập của sinh viên -->
                 <article class="card student-card">
                     <div class="student-header">
-                        <div class="student-avatar" aria-hidden="true">NV</div>
+                        <div class="student-avatar" aria-hidden="true">MA</div>
                         <div class="student-identity">
                             <h3 class="student-name">Nguyễn Minh Anh</h3>
                             <p class="student-meta">MSSV: 23110099 &bull; Chuyên ngành: Thiết kế &amp; Phát triển Web</p>
                         </div>
-                        <span class="status-badge status-badge--active">Đang theo học</span>
+                        <span id="gpa-badge" class="status-badge status-badge--active">Đang tải...</span>
                     </div>
 
                     <dl class="student-stats">
                         <div class="stat-item">
                             <dt class="stat-label">Học kỳ hiện tại</dt>
-                            <dd class="stat-value">Học kỳ II (2025 – 2026)</dd>
+                            <dd class="stat-value">Học kỳ 4 (2025 – 2026)</dd>
                         </div>
                         <div class="stat-item">
-                            <dt class="stat-label">Học phần hoàn thành</dt>
-                            <dd class="stat-value">1 / 5 học phần</dd>
+                            <dt class="stat-label">Môn đã hoàn thành</dt>
+                            <dd id="completed-courses" class="stat-value">0 / 0 môn</dd>
                         </div>
                         <div class="stat-item">
-                            <dt class="stat-label">Chuỗi ngày học tập</dt>
-                            <dd class="stat-value">14 ngày liên tiếp</dd>
+                            <dt class="stat-label">Tín chỉ tích lũy</dt>
+                            <dd id="total-credits" class="stat-value">0 tín chỉ</dd>
                         </div>
                     </dl>
                 </article>
 
-                <!-- Thẻ <article>: Khối nội dung độc lập hiển thị thanh Progress Bar tổng quan phần trăm hoàn thành toàn chương trình -->
+                <!-- Thẻ <article>: Khối nội dung độc lập hiển thị điểm GPA hệ 4, xếp loại học lực và thanh Progress Bar tổng quan -->
                 <article class="card overall-progress-card">
                     <div class="card-header">
-                        <h3 class="card-title">Tiến độ hoàn thành chương trình</h3>
-                        <span class="progress-percent">68%</span>
+                        <h3 class="card-title">GPA Tích lũy &amp; Tiến độ chương trình</h3>
+                        <span id="gpa-rank" class="status-badge">Đang tính...</span>
                     </div>
-                    <p class="card-summary">Bạn đã hoàn thành 68% tổng khối lượng kiến thức trong lộ trình Frontend cơ bản đến nâng cao.</p>
 
-                    <div class="progress-bar progress-bar--large" role="progressbar" aria-label="Tiến độ hoàn thành chương trình" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100">
+                    <div class="gpa-highlight">
+                        <div class="gpa-score-box">
+                            <span id="gpa-value" class="gpa-value">0.00</span>
+                            <span class="gpa-scale">/ 4.00</span>
+                        </div>
+                        <div class="gpa-progress-summary">
+                            <span class="gpa-progress-label">Hoàn thành lộ trình</span>
+                            <span id="overall-progress-percent" class="progress-percent">0%</span>
+                        </div>
+                    </div>
+
+                    <p id="gpa-message" class="card-summary">Đang tổng hợp dữ liệu từ danh sách môn học...</p>
+
+                    <div id="overall-progress-bar" class="progress-bar progress-bar--large" role="progressbar" aria-label="Tiến độ hoàn thành chương trình" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                         <div class="progress-track">
-                            <div class="progress-fill" style="--percent: 68%;"></div>
+                            <div id="overall-progress-fill" class="progress-fill" style="--percent: 0%;"></div>
                         </div>
                     </div>
 
                     <div class="progress-footer">
-                        <span class="progress-note">Đã đạt: 34 / 50 bài học</span>
-                        <span class="progress-target">Mục tiêu kỳ này: 85%</span>
+                        <span id="overall-progress-note" class="progress-note">Đang cập nhật số môn...</span>
+                        <span class="progress-target">Mục tiêu GPA: &ge; 3.60 (Xuất sắc)</span>
                     </div>
                 </article>
             </div>
         </section>
 
-        <!-- Thẻ <section>: Phân khu 2 - Chi tiết Lộ trình Học tập, liệt kê từng giai đoạn/học phần cùng trạng thái và thanh tiến độ riêng biệt -->
+        <!-- Thẻ <section>: Phân khu 2 - Chi tiết Lộ trình Học tập, hiển thị động toàn bộ môn học từ data.js kèm bộ lọc trạng thái -->
         <section id="learning-path" class="dashboard-section path-section" aria-labelledby="path-heading">
-            <div class="section-header">
-                <h2 id="path-heading" class="section-title">Chi tiết Lộ trình Học tập</h2>
-                <p class="section-desc">Theo dõi tiến độ chi tiết của từng giai đoạn và học phần trong chương trình.</p>
+            <div class="section-header section-header--with-actions">
+                <div>
+                    <h2 id="path-heading" class="section-title">Chi tiết Lộ trình Học tập</h2>
+                    <p class="section-desc">Danh sách học phần đại học kèm số tín chỉ, điểm quy đổi hệ 10 / hệ 4 / điểm chữ và thanh tiến độ.</p>
+                </div>
+
+                <div class="filter-bar" role="group" aria-label="Lọc môn học theo trạng thái">
+                    <button type="button" class="filter-btn filter-btn--active" data-filter="tat_ca">Tất cả</button>
+                    <button type="button" class="filter-btn" data-filter="da_hoan_thanh">Đã hoàn thành</button>
+                    <button type="button" class="filter-btn" data-filter="dang_hoc">Đang học</button>
+                    <button type="button" class="filter-btn" data-filter="chua_hoc">Chưa học</button>
+                </div>
             </div>
 
-            <div class="course-grid">
-                <!-- Thẻ <article>: Thẻ học phần đại diện cho Giai đoạn 1 - HTML5 & CSS3 Nền tảng -->
-                <article class="card course-card course-card--completed">
-                    <div class="course-header">
-                        <span class="course-stage">Giai đoạn 01</span>
-                        <span class="status-badge status-badge--completed">Đã hoàn thành</span>
-                    </div>
-                    <h3 class="course-title">HTML5 Ngữ nghĩa &amp; CSS3 Nền tảng</h3>
-                    <p class="course-desc">Cấu trúc trang web chuẩn Semantic HTML5, Box Model, Flexbox, CSS Grid và Responsive Design.</p>
-                    <div class="course-progress">
-                        <div class="progress-info">
-                            <span class="progress-label">Tiến độ học phần</span>
-                            <span class="progress-value">100%</span>
-                        </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ HTML5 Ngữ nghĩa và CSS3 Nền tảng" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="--percent: 100%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Thẻ <article>: Thẻ học phần đại diện cho Giai đoạn 2 - Thiết kế Giao diện UI/UX -->
-                <article class="card course-card course-card--in-progress">
-                    <div class="course-header">
-                        <span class="course-stage">Giai đoạn 02</span>
-                        <span class="status-badge status-badge--in-progress">Đang hoàn thiện</span>
-                    </div>
-                    <h3 class="course-title">Thiết kế Giao diện UI/UX Cơ bản</h3>
-                    <p class="course-desc">Nguyên lý thị giác, hệ thống lưới, kiểu chữ, bảng màu và khả năng truy cập (Accessibility).</p>
-                    <div class="course-progress">
-                        <div class="progress-info">
-                            <span class="progress-label">Tiến độ học phần</span>
-                            <span class="progress-value">90%</span>
-                        </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ Thiết kế Giao diện UI/UX Cơ bản" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="--percent: 90%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Thẻ <article>: Thẻ học phần đại diện cho Giai đoạn 3 - JavaScript Hiện đại -->
-                <article class="card course-card course-card--in-progress">
-                    <div class="course-header">
-                        <span class="course-stage">Giai đoạn 03</span>
-                        <span class="status-badge status-badge--in-progress">Đang học</span>
-                    </div>
-                    <h3 class="course-title">JavaScript Hiện đại (ES6+)</h3>
-                    <p class="course-desc">Thao tác DOM, xử lý sự kiện, lập trình bất đồng bộ với Promise, Async/Await và Fetch API.</p>
-                    <div class="course-progress">
-                        <div class="progress-info">
-                            <span class="progress-label">Tiến độ học phần</span>
-                            <span class="progress-value">75%</span>
-                        </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ JavaScript Hiện đại" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="--percent: 75%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Thẻ <article>: Thẻ học phần đại diện cho Giai đoạn 4 - Cấu trúc Dữ liệu & Giải thuật -->
-                <article class="card course-card course-card--in-progress">
-                    <div class="course-header">
-                        <span class="course-stage">Giai đoạn 04</span>
-                        <span class="status-badge status-badge--in-progress">Đang học</span>
-                    </div>
-                    <h3 class="course-title">Cấu trúc Dữ liệu &amp; Giải thuật</h3>
-                    <p class="course-desc">Mảng, danh sách liên kết, ngăn xếp, hàng đợi, cây tìm kiếm và phân tích độ phức tạp thuật toán.</p>
-                    <div class="course-progress">
-                        <div class="progress-info">
-                            <span class="progress-label">Tiến độ học phần</span>
-                            <span class="progress-value">55%</span>
-                        </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ Cấu trúc Dữ liệu và Giải thuật" aria-valuenow="55" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="--percent: 55%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Thẻ <article>: Thẻ học phần đại diện cho Giai đoạn 5 - Dự án Web Thực tế & Triển khai -->
-                <article class="card course-card course-card--upcoming">
-                    <div class="course-header">
-                        <span class="course-stage">Giai đoạn 05</span>
-                        <span class="status-badge status-badge--upcoming">Mới bắt đầu</span>
-                    </div>
-                    <h3 class="course-title">Dự án Web Thực tế &amp; Triển khai</h3>
-                    <p class="course-desc">Quản lý mã nguồn với Git, tối ưu hiệu năng, kiểm thử giao diện và triển khai lên môi trường thực tế.</p>
-                    <div class="course-progress">
-                        <div class="progress-info">
-                            <span class="progress-label">Tiến độ học phần</span>
-                            <span class="progress-value">20%</span>
-                        </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ Dự án Web Thực tế và Triển khai" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-track">
-                                <div class="progress-fill" style="--percent: 20%;"></div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Danh sách thẻ <article> từng môn học sẽ được data.js tự động render vào đây -->
+            <div id="course-list" class="course-grid" aria-live="polite">
+                <!-- Thẻ <article>: Thẻ hiển thị tạm thời trước khi dữ liệu từ data.js được nạp -->
+                <article class="card course-card">
+                    <h3 class="course-title">Đang tải danh sách môn học...</h3>
+                    <p class="course-desc">Vui lòng đảm bảo trình duyệt đã bật JavaScript để hiển thị dữ liệu từ <code>js/data.js</code>.</p>
                 </article>
             </div>
         </section>
 
-        <!-- Thẻ <section>: Phân khu 3 - Thống kê Tiến độ qua Biểu đồ cột, cung cấp cấu trúc trực quan hóa dữ liệu hoàn thành của 5 học phần bằng CSS thuần -->
+        <!-- Thẻ <section>: Phân khu 3 - Thống kê Điểm số & Tiến độ qua Biểu đồ cột CSS thuần kết hợp dữ liệu từ data.js -->
         <section id="progress-chart" class="dashboard-section chart-section" aria-labelledby="chart-heading">
             <div class="section-header">
-                <h2 id="chart-heading" class="section-title">Thống kê Tiến độ qua Biểu đồ cột</h2>
-                <p class="section-desc">So sánh trực quan tỷ lệ hoàn thành (%) giữa các học phần trong lộ trình học tập.</p>
+                <h2 id="chart-heading" class="section-title">Thống kê Điểm số qua Biểu đồ cột</h2>
+                <p class="section-desc">Biểu đồ cột trực quan so sánh điểm hệ 10 và điểm chữ của các môn đã hoàn thành (cột cao nhất được tô điểm vàng ấm).</p>
             </div>
 
             <div class="card chart-card">
-                <div class="bar-chart" role="img" aria-label="Biểu đồ cột thể hiện phần trăm hoàn thành của 5 học phần: HTML5/CSS3 100%, UI/UX 90%, JavaScript 75%, CTDL và Giải thuật 55%, Dự án Web 20%">
+                <div id="score-bar-chart" class="bar-chart" role="img" aria-label="Biểu đồ cột điểm số các môn học đã hoàn thành">
                     <div class="chart-y-axis" aria-hidden="true">
-                        <span class="y-tick">100%</span>
-                        <span class="y-tick">75%</span>
-                        <span class="y-tick">50%</span>
-                        <span class="y-tick">25%</span>
-                        <span class="y-tick">0%</span>
+                        <span class="y-tick">10.0</span>
+                        <span class="y-tick">7.5</span>
+                        <span class="y-tick">5.0</span>
+                        <span class="y-tick">2.5</span>
+                        <span class="y-tick">0.0</span>
                     </div>
 
                     <div class="chart-plot">
-                        <div class="chart-bars">
-                            <div class="chart-column" style="--percent: 100%;">
-                                <span class="bar-value">100%</span>
-                                <div class="bar-track">
-                                    <div class="bar-fill"></div>
-                                </div>
-                                <span class="bar-label">HTML5 &amp; CSS3</span>
-                            </div>
-
-                            <div class="chart-column" style="--percent: 90%;">
-                                <span class="bar-value">90%</span>
-                                <div class="bar-track">
-                                    <div class="bar-fill"></div>
-                                </div>
-                                <span class="bar-label">UI/UX Cơ bản</span>
-                            </div>
-
-                            <div class="chart-column" style="--percent: 75%;">
-                                <span class="bar-value">75%</span>
-                                <div class="bar-track">
-                                    <div class="bar-fill"></div>
-                                </div>
-                                <span class="bar-label">JavaScript ES6+</span>
-                            </div>
-
-                            <div class="chart-column" style="--percent: 55%;">
-                                <span class="bar-value">55%</span>
-                                <div class="bar-track">
-                                    <div class="bar-fill"></div>
-                                </div>
-                                <span class="bar-label">CTDL &amp; Giải thuật</span>
-                            </div>
-
-                            <div class="chart-column" style="--percent: 20%;">
-                                <span class="bar-value">20%</span>
-                                <div class="bar-track">
-                                    <div class="bar-fill"></div>
-                                </div>
-                                <span class="bar-label">Dự án Web</span>
-                            </div>
-                        </div>
+                        <div id="chart-bars" class="chart-bars"></div>
                         <div class="chart-x-axis" aria-hidden="true"></div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Thẻ <aside>: Khối nội dung bổ trợ hiển thị mục tiêu ngắn hạn và lịch nhắc nhở ôn tập giúp sinh viên duy trì kỷ luật học tập -->
+        <!-- Thẻ <aside>: Khối nội dung bổ trợ hiển thị các môn đang theo học, mục tiêu ngắn hạn và lịch nhắc nhở ôn tập -->
         <aside id="goals" class="dashboard-aside goals-aside" aria-labelledby="goals-heading">
             <div class="section-header">
                 <h2 id="goals-heading" class="section-title">Mục tiêu &amp; Nhắc nhở Ôn tập</h2>
-                <p class="section-desc">Kế hoạch ưu tiên trong tuần và các mốc thời gian ôn tập quan trọng.</p>
+                <p class="section-desc">Tổng hợp nhanh các môn đang học trong kỳ và kế hoạch ôn tập ưu tiên.</p>
             </div>
 
             <div class="aside-grid">
-                <!-- Thẻ <article>: Khối nội dung độc lập liệt kê các mục tiêu học tập ngắn hạn cần hoàn thành trong tuần -->
+                <!-- Thẻ <article>: Khối nội dung độc lập liệt kê các môn đang học và sắp học tự động đồng bộ từ data.js -->
                 <article class="card goal-card">
-                    <h3 class="card-title">Mục tiêu ngắn hạn</h3>
-                    <ul class="goal-list">
-                        <li class="goal-item goal-item--done">
-                            <span class="goal-text">Hoàn thiện bài tập thực hành Flexbox &amp; Grid Layout</span>
-                            <span class="goal-tag">Hoàn thành</span>
-                        </li>
+                    <h3 class="card-title">Trọng tâm học kỳ hiện tại</h3>
+                    <ul id="active-courses-list" class="goal-list">
                         <li class="goal-item">
-                            <span class="goal-text">Đạt 100% học phần Thiết kế Giao diện UI/UX Cơ bản</span>
-                            <span class="goal-tag">Ưu tiên cao</span>
-                        </li>
-                        <li class="goal-item">
-                            <span class="goal-text">Luyện tập 10 bài toán về Danh sách liên kết &amp; Cây nhị phân</span>
-                            <span class="goal-tag">Đang thực hiện</span>
+                            <span class="goal-text">Đang tải danh sách môn đang học...</span>
+                            <span class="goal-tag">Đang cập nhật</span>
                         </li>
                     </ul>
                 </article>
@@ -310,15 +186,15 @@
                     <ul class="reminder-list">
                         <li class="reminder-item">
                             <time class="reminder-time" datetime="2026-05-15T19:30">Thứ Sáu, 19:30</time>
-                            <p class="reminder-text">Ôn tập Semantic HTML5 và tối ưu hóa CSS Variables cho Dashboard.</p>
+                            <p class="reminder-text">Ôn tập bài giảng Trí tuệ nhân tạo (IT302) và giải bài tập tìm kiếm heuristic.</p>
                         </li>
                         <li class="reminder-item">
                             <time class="reminder-time" datetime="2026-05-17T09:00">Chủ Nhật, 09:00</time>
-                            <p class="reminder-text">Kiểm tra trắc nghiệm kiến thức JavaScript ES6+ và Async/Await.</p>
+                            <p class="reminder-text">Hoàn thiện đặc tả yêu cầu cho môn Công nghệ Phần mềm (IT303).</p>
                         </li>
                         <li class="reminder-item">
                             <time class="reminder-time" datetime="2026-05-20T23:59">Thứ Tư, 23:59</time>
-                            <p class="reminder-text">Hạn nộp đồ án cuối kỳ môn Thiết kế Web (Nhóm 9).</p>
+                            <p class="reminder-text">Nộp đồ án Dashboard Cá nhân &amp; Lộ trình Học tập (Nhóm 9).</p>
                         </li>
                     </ul>
                 </article>
@@ -336,5 +212,10 @@
         </div>
     </footer>
 
+    <!-- Nút quay lại đầu trang hiển thị mượt khi cuộn xuống -->
+    <button type="button" id="back-to-top" class="back-to-top" aria-label="Quay về đầu trang" title="Quay về đầu trang">&#8593;</button>
+
+    <!-- Liên kết file JavaScript xử lý dữ liệu và cập nhật giao diện Dashboard -->
+    <script src="js/data.js"></script>
 </body>
 </html>
