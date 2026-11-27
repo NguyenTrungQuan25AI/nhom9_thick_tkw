@@ -25,6 +25,9 @@
                         <a class="nav-link" href="#overview">Tổng quan</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#grade-input">Nhập môn học</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#learning-path">Lộ trình học tập</a>
                     </li>
                     <li class="nav-item">
@@ -110,19 +113,98 @@
             </div>
         </section>
 
-        <!-- Thẻ <section>: Phân khu 2 - Chi tiết Lộ trình Học tập, hiển thị động toàn bộ môn học từ data.js kèm bộ lọc trạng thái -->
+        <!-- Thẻ <section>: Phân khu nhập liệu - Cho phép sinh viên thêm môn học mới, nhập điểm và khôi phục dữ liệu mẫu trực tiếp -->
+        <section id="grade-input" class="dashboard-section grade-input-section" aria-labelledby="grade-input-heading">
+            <div class="section-header">
+                <h2 id="grade-input-heading" class="section-title">Thêm Môn học &amp; Nhập điểm trực tiếp</h2>
+                <p class="section-desc">Bổ sung học phần mới để tính lại GPA hệ 4, xếp loại học lực và biểu đồ điểm theo thời gian thực.</p>
+            </div>
+
+            <div class="card grade-form-card">
+                <form id="course-form" class="grade-form" novalidate>
+                    <div class="form-grid">
+                        <!-- Trường nhập tên môn học -->
+                        <div class="form-group form-group--wide">
+                            <label class="form-label" for="input-course-name">Tên môn học <span class="required-mark" aria-hidden="true">*</span></label>
+                            <input type="text" id="input-course-name" name="tenMon" class="form-control" placeholder="VD: Học máy cơ bản" required autocomplete="off">
+                        </div>
+
+                        <!-- Trường chọn học kỳ từ HK1 đến HK8 -->
+                        <div class="form-group">
+                            <label class="form-label" for="input-semester">Học kỳ</label>
+                            <select id="input-semester" name="hocKy" class="form-control">
+                                <option value="1">Học kỳ 1</option>
+                                <option value="2">Học kỳ 2</option>
+                                <option value="3">Học kỳ 3</option>
+                                <option value="4" selected>Học kỳ 4</option>
+                                <option value="5">Học kỳ 5</option>
+                                <option value="6">Học kỳ 6</option>
+                                <option value="7">Học kỳ 7</option>
+                                <option value="8">Học kỳ 8</option>
+                            </select>
+                        </div>
+
+                        <!-- Trường nhập số tín chỉ (1 - 10) -->
+                        <div class="form-group">
+                            <label class="form-label" for="input-credits">Số tín chỉ</label>
+                            <input type="number" id="input-credits" name="soTinChi" class="form-control" min="1" max="10" value="3" required>
+                        </div>
+
+                        <!-- Trường chọn trạng thái môn học -->
+                        <div class="form-group">
+                            <label class="form-label" for="input-status">Trạng thái</label>
+                            <select id="input-status" name="trangThai" class="form-control">
+                                <option value="da_hoan_thanh" selected>Đã hoàn thành</option>
+                                <option value="dang_hoc">Đang học</option>
+                                <option value="chua_hoc">Chưa học</option>
+                            </select>
+                        </div>
+
+                        <!-- Trường nhập điểm hệ 10 (tự động khóa khi trạng thái khác Đã hoàn thành) -->
+                        <div class="form-group">
+                            <label class="form-label" for="input-score">Điểm hệ 10</label>
+                            <input type="number" id="input-score" name="diemHe10" class="form-control" step="0.1" min="0" max="10" placeholder="0.0 – 10.0">
+                        </div>
+                    </div>
+
+                    <!-- Nhóm nút thao tác chính và khôi phục dữ liệu mẫu -->
+                    <div class="form-actions">
+                        <button type="submit" id="btn-add-course" class="btn btn--primary">Thêm môn học</button>
+                        <button type="button" id="btn-reset-data" class="btn btn--secondary">Khôi phục dữ liệu mẫu</button>
+                    </div>
+                </form>
+
+                <!-- Vùng hiển thị thông báo kiểm tra lỗi hoặc xác nhận thành công (không dùng alert) -->
+                <div id="form-message" class="form-message" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <!-- Thẻ <section>: Phân khu 2 - Chi tiết Lộ trình Học tập, hiển thị động toàn bộ môn học kèm bộ lọc và tìm kiếm -->
         <section id="learning-path" class="dashboard-section path-section" aria-labelledby="path-heading">
             <div class="section-header section-header--with-actions">
                 <div>
                     <h2 id="path-heading" class="section-title">Chi tiết Lộ trình Học tập</h2>
-                    <p class="section-desc">Danh sách học phần đại học kèm số tín chỉ, điểm quy đổi hệ 10 / hệ 4 / điểm chữ và thanh tiến độ.</p>
+                    <p class="section-desc">Danh sách học phần đại học kèm số tín chỉ, điểm quy đổi hệ 10 / hệ 4 / điểm chữ và thao tác sửa/xóa trực tiếp.</p>
                 </div>
 
-                <div class="filter-bar" role="group" aria-label="Lọc môn học theo trạng thái">
-                    <button type="button" class="filter-btn filter-btn--active" data-filter="tat_ca">Tất cả</button>
-                    <button type="button" class="filter-btn" data-filter="da_hoan_thanh">Đã hoàn thành</button>
-                    <button type="button" class="filter-btn" data-filter="dang_hoc">Đang học</button>
-                    <button type="button" class="filter-btn" data-filter="chua_hoc">Chưa học</button>
+                <!-- Thanh công cụ tìm kiếm theo tên môn và lọc nhanh theo trạng thái -->
+                <div class="course-toolbar" role="search" aria-label="Tìm kiếm và lọc môn học">
+                    <div class="search-box">
+                        <label class="sr-only" for="search-course">Tìm kiếm theo tên môn</label>
+                        <input type="search" id="search-course" class="form-control toolbar-search" placeholder="Tìm theo tên hoặc mã môn..." autocomplete="off">
+                    </div>
+
+                    <div class="filter-select-box">
+                        <label class="sr-only" for="filter-status">Lọc theo trạng thái</label>
+                        <select id="filter-status" class="form-control toolbar-select">
+                            <option value="tat_ca">Tất cả trạng thái</option>
+                            <option value="da_hoan_thanh">Đã hoàn thành</option>
+                            <option value="dang_hoc">Đang học</option>
+                            <option value="chua_hoc">Chưa học</option>
+                        </select>
+                    </div>
+
+                    <span id="course-filter-count" class="toolbar-count">0 môn</span>
                 </div>
             </div>
 

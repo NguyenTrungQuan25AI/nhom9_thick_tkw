@@ -3,14 +3,18 @@
  * File: js/data.js
  * Dự án: Dashboard Cá nhân & Lộ trình Học tập (The Learning Path)
  * Mô tả: Dữ liệu mẫu các môn học, các hàm thuần (Pure Functions) tính GPA hệ 4,
- *        xếp loại học lực, cấu hình màu trạng thái và hàm render toàn bộ
- *        Dashboard lên giao diện index.html.
+ *        xếp loại học lực, cấu hình màu trạng thái, lưu trữ LocalStorage và
+ *        xử lý tương tác Thêm / Sửa / Xóa / Lọc / Tìm kiếm theo thời gian thực.
  * ============================================================================
  */
 
-// 1. DỮ LIỆU MẪU (JSON ARRAY)
-// Danh sách 10 môn học đại học thực tế phục vụ hiển thị và tính toán Dashboard
-const danhSachMonHoc = [
+// 1. DỮ LIỆU MẪU (JSON ARRAY) & CẤU HÌNH LOCALSTORAGE
+
+// Khóa lưu trữ dữ liệu môn học trên trình duyệt
+const STORAGE_KEY_MON_HOC = "the_learning_path_courses_v1";
+
+// Bộ dữ liệu mẫu mặc định gồm 10 môn học đại học thực tế (dùng để khởi tạo & khôi phục)
+const DANH_SACH_MON_HOC_MAC_DINH = [
     {
         maMon: "IT101",
         tenMon: "Nhập môn Lập trình",
@@ -93,7 +97,60 @@ const danhSachMonHoc = [
     }
 ];
 
-// 2. CÁC HÀM XỬ LÝ LOGIC (PURE FUNCTIONS)
+/**
+ * Tạo bản sao độc lập từ danh sách môn học mặc định để tránh sửa trực tiếp dữ liệu gốc.
+ * @returns {Array<Object>} Mảng bản sao các môn học mẫu.
+ */
+function taoBanSaoDuLieuMau() {
+    return DANH_SACH_MON_HOC_MAC_DINH.map((mon) => ({ ...mon }));
+}
+
+/**
+ * Đọc danh sách môn học từ localStorage; nếu chưa có hoặc dữ liệu lỗi thì nạp mảng mặc định.
+ * @returns {Array<Object>} Danh sách môn học hợp lệ.
+ */
+function taiDuLieuTuStorage() {
+    if (typeof localStorage === "undefined") {
+        return taoBanSaoDuLieuMau();
+    }
+
+    try {
+        const chuoiLuu = localStorage.getItem(STORAGE_KEY_MON_HOC);
+        if (!chuoiLuu) return taoBanSaoDuLieuMau();
+
+        const duLieuDoc = JSON.parse(chuoiLuu);
+        if (!Array.isArray(duLieuDoc)) return taoBanSaoDuLieuMau();
+
+        return duLieuDoc;
+    } catch (err) {
+        return taoBanSaoDuLieuMau();
+    }
+}
+
+/**
+ * Lưu mảng danhSachMonHoc hiện tại vào localStorage để giữ nguyên sau khi tải lại trang.
+ * @param {Array<Object>} dsMon - Danh sách môn học cần lưu.
+ */
+function luuDuLieuVaoStorage(dsMon) {
+    if (typeof localStorage === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEY_MON_HOC, JSON.stringify(dsMon));
+    } catch (err) {
+        // Bỏ qua an toàn nếu trình duyệt tắt quyền lưu trữ cục bộ
+    }
+}
+
+// Danh sách môn học đang hoạt động của Dashboard (tự động khôi phục từ localStorage nếu có)
+let danhSachMonHoc = taiDuLieuTuStorage();
+
+// Trạng thái bộ lọc, từ khóa tìm kiếm và mã môn đang mở chế độ sửa trực tiếp
+const trangThaiGiaoDien = {
+    boLocTrangThai: "tat_ca",
+    tuKhoaTimKiem: "",
+    maMonDangSua: null
+};
+
+// 2. CÁC HÀM XỬ LÝ LOGIC CỐT LÕI (PURE FUNCTIONS)
 
 /**
  * Quy đổi điểm hệ 10 sang điểm hệ 4 và điểm chữ theo chuẩn tín chỉ đại học Việt Nam.
@@ -241,7 +298,7 @@ function tongHopDashboard(dsMon) {
     const xepLoai = xepLoaiHocLuc(gpaHe4);
     const mauSac = layTrangThaiMauSac(gpaHe4);
 
-    // Gắn thêm điểm hệ 4 và điểm chữ vào bản sao của từng môn học (không thay đổi mảng gốc)
+    // Gắn thêm điểm hệ 4 và điểm chữ vào bản sao của từng môn học
     const danhSachChiTiet = danhSachAnToan.map((mon) => {
         const { diemHe4, diemChu } = quyDoiDiemHe4(mon.diemHe10);
         return {
@@ -264,6 +321,36 @@ function tongHopDashboard(dsMon) {
         soMonHoanThanh,
         danhSachChiTiet
     };
+}
+
+/**
+ * Tự động sinh mã môn học mới không trùng lặp theo định dạng MH011, MH012...
+ * @param {Array<Object>} dsMon - Danh sách môn học hiện có.
+ * @returns {string} Mã môn học duy nhất mới.
+ */
+function taoMaMonMoi(dsMon) {
+    const tapMaHienCo = new Set(dsMon.map((mon) => mon.maMon));
+    let soThuTu = dsMon.length + 1;
+
+    while (tapMaHienCo.has(`MH${String(soThuTu).padStart(3, "0")}`)) {
+        soThuTu += 1;
+    }
+
+    return `MH${String(soThuTu).padStart(3, "0")}`;
+}
+
+/**
+ * Thoát ký tự HTML đặc biệt để đảm bảo an toàn khi hiển thị tên môn người dùng nhập.
+ * @param {string} chuoi - Chuỗi văn bản đầu vào.
+ * @returns {string} Chuỗi đã được thoát ký tự HTML.
+ */
+function thoatKyTuHTML(chuoi) {
+    return String(chuoi)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 // 3. HÀM CẬP NHẬT GIAO DIỆN (DOM HELPERS)
@@ -299,7 +386,26 @@ function layCauHinhTrangThaiMon(trangThai) {
 }
 
 /**
- * Cập nhật khối Tổng quan GPA, xếp loại, tín chỉ tích lũy và thanh Progress Bar tổng quan.
+ * Hiển thị thông báo ngay dưới form nhập liệu (thay thế hoàn toàn cho alert()).
+ * @param {string} noiDung - Nội dung thông báo cần hiển thị.
+ * @param {"success"|"error"|"info"} [loai="info"] - Loại thông báo quyết định màu sắc.
+ */
+function hienThiThongBaoForm(noiDung, loai = "info") {
+    const messageEl = document.getElementById("form-message");
+    if (!messageEl) return;
+
+    messageEl.classList.remove("form-message--success", "form-message--error", "form-message--info");
+    if (!noiDung) {
+        messageEl.textContent = "";
+        return;
+    }
+
+    messageEl.classList.add(`form-message--${loai}`);
+    messageEl.textContent = noiDung;
+}
+
+/**
+ * Cập nhật khối Tổng quan GPA, xếp loại, tín chỉ tích lũy, màu cảnh báo và Progress Bar tổng quan.
  * @param {Array<Object>} [dsMon=danhSachMonHoc] - Danh sách môn học dùng để hiển thị.
  * @returns {Object} Đối tượng dữ liệu tổng hợp vừa được cập nhật.
  */
@@ -310,7 +416,7 @@ function capNhatGiaoDienGPA(dsMon = danhSachMonHoc) {
     const tongSoMon = danhSachChiTiet.length;
     const phanTramHoanThanh = tongSoMon > 0 ? Math.round((soMonHoanThanh / tongSoMon) * 100) : 0;
 
-    // Hàm nội bộ áp dụng màu sắc và class trạng thái cho phần tử
+    // Hàm nội bộ áp dụng màu sắc và class trạng thái cho huy hiệu
     const apDungMauTrangThai = (el) => {
         el.classList.remove(...cacClassTrangThai);
         el.classList.add(mauSac.badgeClass);
@@ -324,6 +430,12 @@ function capNhatGiaoDienGPA(dsMon = danhSachMonHoc) {
     if (gpaEl) {
         gpaEl.textContent = gpaHe4.toFixed(2);
         gpaEl.style.color = mauSac.textColor;
+    }
+
+    // Đổi màu viền trên thẻ Tổng quan GPA để cảnh báo trực quan khi GPA thay đổi
+    const overallCard = document.querySelector(".overall-progress-card");
+    if (overallCard) {
+        overallCard.style.borderTopColor = mauSac.textColor;
     }
 
     // Cập nhật xếp loại học lực
@@ -384,24 +496,38 @@ function capNhatGiaoDienGPA(dsMon = danhSachMonHoc) {
 }
 
 /**
- * Render danh sách các thẻ <article> môn học vào Section "Chi tiết Lộ trình Học tập".
+ * Render danh sách các thẻ <article> môn học có áp dụng bộ lọc trạng thái, tìm kiếm
+ * và hỗ trợ khung sửa trực tiếp cùng nút Sửa điểm / Xóa trên từng thẻ.
  * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
- * @param {string} [boLoc="tat_ca"] - Trạng thái cần lọc ("tat_ca" | "da_hoan_thanh" | "dang_hoc" | "chua_hoc").
  */
-function renderDanhSachMonHoc(duLieu, boLoc = "tat_ca") {
+function renderDanhSachMonHoc(duLieu) {
     const container = document.getElementById("course-list");
     if (!container) return;
 
-    const danhSachHienThi =
-        boLoc === "tat_ca"
-            ? duLieu.danhSachChiTiet
-            : duLieu.danhSachChiTiet.filter((mon) => mon.trangThai === boLoc);
+    const tuKhoa = trangThaiGiaoDien.tuKhoaTimKiem.trim().toLowerCase();
+    const boLoc = trangThaiGiaoDien.boLocTrangThai;
+
+    // Lọc đồng thời theo trạng thái và từ khóa tìm kiếm tên/mã môn
+    const danhSachHienThi = duLieu.danhSachChiTiet.filter((mon) => {
+        const khopTrangThai = boLoc === "tat_ca" || mon.trangThai === boLoc;
+        const khopTuKhoa =
+            tuKhoa === "" ||
+            mon.tenMon.toLowerCase().includes(tuKhoa) ||
+            mon.maMon.toLowerCase().includes(tuKhoa);
+        return khopTrangThai && khopTuKhoa;
+    });
+
+    // Cập nhật bộ đếm số môn đang hiển thị trên thanh công cụ
+    const countEl = document.getElementById("course-filter-count");
+    if (countEl) {
+        countEl.textContent = `${danhSachHienThi.length} / ${duLieu.danhSachChiTiet.length} môn`;
+    }
 
     if (danhSachHienThi.length === 0) {
         container.innerHTML = `
             <article class="card course-card">
-                <h3 class="course-title">Không có môn học nào trong mục này</h3>
-                <p class="course-desc">Hãy chọn bộ lọc khác để xem đầy đủ lộ trình học tập.</p>
+                <h3 class="course-title">Không tìm thấy môn học phù hợp</h3>
+                <p class="course-desc">Hãy thử từ khóa tìm kiếm khác hoặc chuyển bộ lọc sang “Tất cả trạng thái”.</p>
             </article>
         `;
         return;
@@ -413,15 +539,60 @@ function renderDanhSachMonHoc(duLieu, boLoc = "tat_ca") {
             const hienThiDiem10 = mon.diemHe10 !== null ? mon.diemHe10.toFixed(1) : "—";
             const hienThiDiem4 = mon.diemHe4 !== null ? mon.diemHe4.toFixed(1) : "—";
             const chipHighlight = mon.diemChu === "A" ? "metric-chip--accent" : "";
-            const doTreMs = Math.min(chiSo * 65, 450);
+            const doTreMs = Math.min(chiSo * 45, 360);
+            const tenAnToan = thoatKyTuHTML(mon.tenMon);
+            const maAnToan = thoatKyTuHTML(mon.maMon);
+            const dangSua = trangThaiGiaoDien.maMonDangSua === mon.maMon;
+
+            // Khung chỉnh sửa trực tiếp trạng thái và điểm hệ 10 ngay trong thẻ môn học
+            const khungSuaHTML = dangSua
+                ? `
+                    <div class="course-edit-panel" data-edit-panel="${maAnToan}">
+                        <div class="course-edit-row">
+                            <div class="course-edit-field">
+                                <label class="course-edit-label" for="edit-status-${maAnToan}">Trạng thái</label>
+                                <select id="edit-status-${maAnToan}" class="form-control course-edit-control" data-edit-status>
+                                    <option value="da_hoan_thanh" ${mon.trangThai === "da_hoan_thanh" ? "selected" : ""}>Đã hoàn thành</option>
+                                    <option value="dang_hoc" ${mon.trangThai === "dang_hoc" ? "selected" : ""}>Đang học</option>
+                                    <option value="chua_hoc" ${mon.trangThai === "chua_hoc" ? "selected" : ""}>Chưa học</option>
+                                </select>
+                            </div>
+                            <div class="course-edit-field">
+                                <label class="course-edit-label" for="edit-score-${maAnToan}">Điểm hệ 10</label>
+                                <input
+                                    type="number"
+                                    id="edit-score-${maAnToan}"
+                                    class="form-control course-edit-control"
+                                    data-edit-score
+                                    step="0.1"
+                                    min="0"
+                                    max="10"
+                                    value="${mon.diemHe10 !== null ? mon.diemHe10 : ""}"
+                                    placeholder="0 – 10"
+                                    ${mon.trangThai !== "da_hoan_thanh" ? "disabled" : ""}
+                                >
+                            </div>
+                        </div>
+                        <div class="course-edit-actions">
+                            <button type="button" class="action-btn action-btn--save" data-action="save-edit" data-id="${maAnToan}">Lưu thay đổi</button>
+                            <button type="button" class="action-btn action-btn--cancel" data-action="cancel-edit" data-id="${maAnToan}">Hủy</button>
+                        </div>
+                    </div>
+                `
+                : `
+                    <div class="course-actions">
+                        <button type="button" class="action-btn action-btn--edit" data-action="edit" data-id="${maAnToan}">Sửa điểm</button>
+                        <button type="button" class="action-btn action-btn--delete" data-action="delete" data-id="${maAnToan}">Xóa</button>
+                    </div>
+                `;
 
             return `
-                <article class="card course-card course-card--animate ${cauHinh.cardClass}" style="--stagger: ${doTreMs}ms;">
+                <article class="card course-card course-card--animate ${cauHinh.cardClass}" data-course-id="${maAnToan}" style="--stagger: ${doTreMs}ms;">
                     <div class="course-header">
-                        <span class="course-stage">Học kỳ ${mon.hocKy} &bull; ${mon.maMon}</span>
+                        <span class="course-stage">Học kỳ ${mon.hocKy} &bull; ${maAnToan}</span>
                         <span class="status-badge ${cauHinh.badgeClass}">${cauHinh.nhan}</span>
                     </div>
-                    <h3 class="course-title">${mon.tenMon}</h3>
+                    <h3 class="course-title">${tenAnToan}</h3>
                     <div class="course-metrics">
                         <div class="metric-chip">
                             <span class="metric-label">Tín chỉ</span>
@@ -441,12 +612,13 @@ function renderDanhSachMonHoc(duLieu, boLoc = "tat_ca") {
                             <span class="progress-label">Tiến độ môn học</span>
                             <span class="progress-value">${cauHinh.phanTram}%</span>
                         </div>
-                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ môn ${mon.tenMon}" aria-valuenow="${cauHinh.phanTram}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ môn ${tenAnToan}" aria-valuenow="${cauHinh.phanTram}" aria-valuemin="0" aria-valuemax="100">
                             <div class="progress-track">
                                 <div class="progress-fill" style="--percent: ${cauHinh.phanTram}%;"></div>
                             </div>
                         </div>
                     </div>
+                    ${khungSuaHTML}
                 </article>
             `;
         })
@@ -466,7 +638,7 @@ function renderBieuDoDiem(duLieu) {
     );
 
     if (monCoDiem.length === 0) {
-        chartBarsEl.innerHTML = `<p class="section-desc">Chưa có dữ liệu điểm số để hiển thị biểu đồ.</p>`;
+        chartBarsEl.innerHTML = `<p class="section-desc">Chưa có môn học đã hoàn thành để vẽ biểu đồ điểm số.</p>`;
         return;
     }
 
@@ -477,16 +649,17 @@ function renderBieuDoDiem(duLieu) {
         .map((mon) => {
             const phanTram = Math.round(mon.diemHe10 * 10);
             const laCaoNhat = mon.diemHe10 === diemCaoNhat ? "chart-column--highest" : "";
-            const tenNgan = mon.tenMon.length > 16 ? `${mon.tenMon.slice(0, 15)}…` : mon.tenMon;
+            const tenAnToan = thoatKyTuHTML(mon.tenMon);
+            const tenNgan = mon.tenMon.length > 14 ? `${thoatKyTuHTML(mon.tenMon.slice(0, 13))}…` : tenAnToan;
 
             return `
-                <div class="chart-column ${laCaoNhat}" style="--percent: ${phanTram}%;" title="${mon.tenMon}: ${mon.diemHe10.toFixed(1)}/10 (${mon.diemChu})">
+                <div class="chart-column ${laCaoNhat}" style="--percent: ${phanTram}%;" title="${tenAnToan}: ${mon.diemHe10.toFixed(1)}/10 (${mon.diemChu})">
                     <span class="bar-value">${mon.diemHe10.toFixed(1)} (${mon.diemChu})</span>
                     <div class="bar-track">
                         <div class="bar-fill"></div>
                     </div>
                     <span class="bar-label">
-                        ${mon.maMon}
+                        ${thoatKyTuHTML(mon.maMon)}
                         <span class="bar-sublabel">${tenNgan}</span>
                     </span>
                 </div>
@@ -523,7 +696,7 @@ function renderMonDangHoc(duLieu) {
 
             return `
                 <li class="goal-item ${itemClass}">
-                    <span class="goal-text"><strong>${mon.maMon}</strong> – ${mon.tenMon} (${mon.soTinChi} TC)</span>
+                    <span class="goal-text"><strong>${thoatKyTuHTML(mon.maMon)}</strong> – ${thoatKyTuHTML(mon.tenMon)} (${mon.soTinChi} TC)</span>
                     <span class="goal-tag">${nhanTrangThai}</span>
                 </li>
             `;
@@ -532,28 +705,277 @@ function renderMonDangHoc(duLieu) {
 }
 
 /**
- * Gắn sự kiện click cho các nút bộ lọc trạng thái môn học trên giao diện.
- * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
+ * Đồng bộ lại toàn bộ Dashboard theo thời gian thực sau mỗi lần Thêm / Sửa / Xóa / Khôi phục.
+ * @returns {Object} Đối tượng tổng hợp mới nhất.
  */
-function khoiTaoBoLocMonHoc(duLieu) {
-    const cacNutLoc = document.querySelectorAll(".filter-btn");
-    if (cacNutLoc.length === 0) return;
+function dongBoToanBoDashboard() {
+    const ketQuaMoi = capNhatGiaoDienGPA(danhSachMonHoc);
+    renderDanhSachMonHoc(ketQuaMoi);
+    renderBieuDoDiem(ketQuaMoi);
+    renderMonDangHoc(ketQuaMoi);
+    return ketQuaMoi;
+}
 
-    cacNutLoc.forEach((nut) => {
-        nut.addEventListener("click", () => {
-            cacNutLoc.forEach((btn) => btn.classList.remove("filter-btn--active"));
-            nut.classList.add("filter-btn--active");
+// 4. XỬ LÝ SỰ KIỆN FORM THÊM MÔN, EVENT DELEGATION (SỬA/XÓA) & LỌC TÌM KIẾM
 
-            const giaTriLoc = nut.getAttribute("data-filter") || "tat_ca";
-            renderDanhSachMonHoc(duLieu, giaTriLoc);
+/**
+ * Gắn sự kiện cho form thêm môn học, tự động khóa ô điểm hệ 10 theo trạng thái
+ * và nút khôi phục dữ liệu mẫu.
+ */
+function khoiTaoFormNhapLieu() {
+    const formEl = document.getElementById("course-form");
+    const nameInput = document.getElementById("input-course-name");
+    const semesterSelect = document.getElementById("input-semester");
+    const creditsInput = document.getElementById("input-credits");
+    const statusSelect = document.getElementById("input-status");
+    const scoreInput = document.getElementById("input-score");
+    const resetBtn = document.getElementById("btn-reset-data");
+
+    if (!formEl || !nameInput || !semesterSelect || !creditsInput || !statusSelect || !scoreInput) {
+        return;
+    }
+
+    // Tự động khóa ô điểm hệ 10 khi trạng thái không phải "Đã hoàn thành"
+    const dongBoTrangThaiODiem = () => {
+        const daHoanThanh = statusSelect.value === "da_hoan_thanh";
+        scoreInput.disabled = !daHoanThanh;
+        scoreInput.required = daHoanThanh;
+        if (!daHoanThanh) {
+            scoreInput.value = "";
+            scoreInput.placeholder = "Chỉ nhập khi đã hoàn thành";
+        } else {
+            scoreInput.placeholder = "0.0 – 10.0";
+        }
+    };
+
+    statusSelect.addEventListener("change", dongBoTrangThaiODiem);
+    dongBoTrangThaiODiem();
+
+    // Xử lý sự kiện submit thêm môn học mới
+    formEl.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const tenMon = nameInput.value.trim();
+        const hocKy = Number.parseInt(semesterSelect.value, 10);
+        const soTinChi = Number.parseInt(creditsInput.value, 10);
+        const trangThai = statusSelect.value;
+
+        if (!tenMon) {
+            hienThiThongBaoForm("Vui lòng nhập tên môn học trước khi thêm.", "error");
+            nameInput.focus();
+            return;
+        }
+
+        if (Number.isNaN(hocKy) || hocKy < 1 || hocKy > 8) {
+            hienThiThongBaoForm("Học kỳ không hợp lệ (chỉ chấp nhận từ Học kỳ 1 đến Học kỳ 8).", "error");
+            semesterSelect.focus();
+            return;
+        }
+
+        if (Number.isNaN(soTinChi) || soTinChi < 1 || soTinChi > 10) {
+            hienThiThongBaoForm("Số tín chỉ phải là số nguyên trong khoảng từ 1 đến 10.", "error");
+            creditsInput.focus();
+            return;
+        }
+
+        let diemHe10 = null;
+        if (trangThai === "da_hoan_thanh") {
+            const giaTriDiem = Number.parseFloat(scoreInput.value);
+            if (scoreInput.value.trim() === "" || Number.isNaN(giaTriDiem) || giaTriDiem < 0 || giaTriDiem > 10) {
+                hienThiThongBaoForm("Với môn đã hoàn thành, vui lòng nhập điểm hệ 10 hợp lệ từ 0.0 đến 10.0.", "error");
+                scoreInput.focus();
+                return;
+            }
+            diemHe10 = Number(giaTriDiem.toFixed(1));
+        }
+
+        const monMoi = {
+            maMon: taoMaMonMoi(danhSachMonHoc),
+            tenMon,
+            hocKy,
+            soTinChi,
+            diemHe10,
+            trangThai
+        };
+
+        danhSachMonHoc.push(monMoi);
+        luuDuLieuVaoStorage(danhSachMonHoc);
+        trangThaiGiaoDien.maMonDangSua = null;
+
+        formEl.reset();
+        semesterSelect.value = "4";
+        creditsInput.value = "3";
+        statusSelect.value = "da_hoan_thanh";
+        dongBoTrangThaiODiem();
+
+        const ketQua = dongBoToanBoDashboard();
+        hienThiThongBaoForm(
+            `Đã thêm môn “${monMoi.tenMon}” (${monMoi.maMon}). GPA hiện tại: ${ketQua.gpaHe4.toFixed(2)} (${ketQua.xepLoai}).`,
+            "success"
+        );
+    });
+
+    // Nút khôi phục dữ liệu mẫu mặc định và xóa dữ liệu lưu trong localStorage
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            if (typeof localStorage !== "undefined") {
+                try {
+                    localStorage.removeItem(STORAGE_KEY_MON_HOC);
+                } catch (err) {
+                    // Bỏ qua nếu không truy cập được localStorage
+                }
+            }
+
+            danhSachMonHoc = taoBanSaoDuLieuMau();
+            trangThaiGiaoDien.boLocTrangThai = "tat_ca";
+            trangThaiGiaoDien.tuKhoaTimKiem = "";
+            trangThaiGiaoDien.maMonDangSua = null;
+
+            const searchEl = document.getElementById("search-course");
+            const filterEl = document.getElementById("filter-status");
+            if (searchEl) searchEl.value = "";
+            if (filterEl) filterEl.value = "tat_ca";
+
+            const ketQua = dongBoToanBoDashboard();
+            hienThiThongBaoForm(
+                `Đã khôi phục 10 môn học mẫu ban đầu. GPA hiện tại: ${ketQua.gpaHe4.toFixed(2)} (${ketQua.xepLoai}).`,
+                "info"
+            );
         });
+    }
+}
+
+/**
+ * Sử dụng Event Delegation trên #course-list để xử lý Sửa điểm, Lưu, Hủy và Xóa môn học.
+ */
+function khoiTaoThaoTacDanhSach() {
+    const container = document.getElementById("course-list");
+    if (!container) return;
+
+    // Lắng nghe thay đổi trạng thái trong khung sửa trực tiếp để tự khóa/mở ô điểm
+    container.addEventListener("change", (event) => {
+        const statusEl = event.target.closest("[data-edit-status]");
+        if (!statusEl) return;
+
+        const panel = statusEl.closest(".course-edit-panel");
+        const scoreEl = panel ? panel.querySelector("[data-edit-score]") : null;
+        if (!scoreEl) return;
+
+        const daHoanThanh = statusEl.value === "da_hoan_thanh";
+        scoreEl.disabled = !daHoanThanh;
+        if (!daHoanThanh) {
+            scoreEl.value = "";
+        } else {
+            scoreEl.focus();
+        }
+    });
+
+    // Lắng nghe các nút Sửa điểm / Lưu / Hủy / Xóa qua Event Delegation
+    container.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-action]");
+        if (!btn) return;
+
+        const hanhDong = btn.getAttribute("data-action");
+        const maMon = btn.getAttribute("data-id");
+        if (!maMon) return;
+
+        // 1. Xóa môn học khỏi mảng
+        if (hanhDong === "delete") {
+            const monBiXoa = danhSachMonHoc.find((mon) => mon.maMon === maMon);
+            if (!monBiXoa) return;
+
+            danhSachMonHoc = danhSachMonHoc.filter((mon) => mon.maMon !== maMon);
+            if (trangThaiGiaoDien.maMonDangSua === maMon) {
+                trangThaiGiaoDien.maMonDangSua = null;
+            }
+
+            luuDuLieuVaoStorage(danhSachMonHoc);
+            const ketQua = dongBoToanBoDashboard();
+            hienThiThongBaoForm(
+                `Đã xóa môn “${monBiXoa.tenMon}” (${monBiXoa.maMon}). GPA cập nhật: ${ketQua.gpaHe4.toFixed(2)} (${ketQua.xepLoai}).`,
+                "info"
+            );
+            return;
+        }
+
+        // 2. Mở khung sửa điểm & trạng thái trực tiếp trên thẻ môn học
+        if (hanhDong === "edit") {
+            trangThaiGiaoDien.maMonDangSua = maMon;
+            renderDanhSachMonHoc(tongHopDashboard(danhSachMonHoc));
+            return;
+        }
+
+        // 3. Hủy chế độ sửa
+        if (hanhDong === "cancel-edit") {
+            trangThaiGiaoDien.maMonDangSua = null;
+            renderDanhSachMonHoc(tongHopDashboard(danhSachMonHoc));
+            return;
+        }
+
+        // 4. Lưu điểm hệ 10 & trạng thái mới cho môn học
+        if (hanhDong === "save-edit") {
+            const panel = btn.closest(".course-edit-panel");
+            const statusEl = panel ? panel.querySelector("[data-edit-status]") : null;
+            const scoreEl = panel ? panel.querySelector("[data-edit-score]") : null;
+            const monCanSua = danhSachMonHoc.find((mon) => mon.maMon === maMon);
+            if (!monCanSua || !statusEl || !scoreEl) return;
+
+            const trangThaiMoi = statusEl.value;
+            let diemMoi = null;
+
+            if (trangThaiMoi === "da_hoan_thanh") {
+                const giaTriDiem = Number.parseFloat(scoreEl.value);
+                if (scoreEl.value.trim() === "" || Number.isNaN(giaTriDiem) || giaTriDiem < 0 || giaTriDiem > 10) {
+                    hienThiThongBaoForm(
+                        `Không thể lưu môn “${monCanSua.tenMon}”: điểm hệ 10 phải nằm trong khoảng 0.0 – 10.0.`,
+                        "error"
+                    );
+                    scoreEl.focus();
+                    return;
+                }
+                diemMoi = Number(giaTriDiem.toFixed(1));
+            }
+
+            monCanSua.trangThai = trangThaiMoi;
+            monCanSua.diemHe10 = diemMoi;
+            trangThaiGiaoDien.maMonDangSua = null;
+
+            luuDuLieuVaoStorage(danhSachMonHoc);
+            const ketQua = dongBoToanBoDashboard();
+            hienThiThongBaoForm(
+                `Đã cập nhật môn “${monCanSua.tenMon}”. GPA mới: ${ketQua.gpaHe4.toFixed(2)} (${ketQua.xepLoai}).`,
+                "success"
+            );
+        }
     });
 }
 
-// 4. HIỆU ỨNG TƯƠNG TÁC HIỆN ĐẠI (COUNT-UP, SCROLL REVEAL, SCROLL-SPY, BACK TO TOP)
+/**
+ * Lắng nghe sự kiện input (tìm kiếm tên môn) và change (chọn trạng thái lọc) theo thời gian thực.
+ */
+function khoiTaoBoLocVaTimKiem() {
+    const searchInput = document.getElementById("search-course");
+    const filterSelect = document.getElementById("filter-status");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", () => {
+            trangThaiGiaoDien.tuKhoaTimKiem = searchInput.value;
+            renderDanhSachMonHoc(tongHopDashboard(danhSachMonHoc));
+        });
+    }
+
+    if (filterSelect) {
+        filterSelect.addEventListener("change", () => {
+            trangThaiGiaoDien.boLocTrangThai = filterSelect.value;
+            renderDanhSachMonHoc(tongHopDashboard(danhSachMonHoc));
+        });
+    }
+}
+
+// 5. HIỆU ỨNG TƯƠNG TÁC HIỆN ĐẠI (COUNT-UP, SCROLL REVEAL, SCROLL-SPY, BACK TO TOP)
 
 /**
- * Tạo hiệu ứng đếm số mượt mà (Ease-Out Cubic) cho các chỉ số GPA, phần trăm và tín chỉ.
+ * Tạo hiệu ứng đếm số mượt mà (Ease-Out Cubic) cho các chỉ số GPA, phần trăm và tín chỉ lúc mới tải trang.
  * @param {HTMLElement|null} el - Phần tử DOM hiển thị con số.
  * @param {number} giaTriDich - Giá trị đích cần đếm tới.
  * @param {Function} dinhDang - Hàm định dạng chuỗi hiển thị từ giá trị hiện tại.
@@ -562,7 +984,6 @@ function khoiTaoBoLocMonHoc(duLieu) {
 function chayHieuUngDemSo(el, giaTriDich, dinhDang, thoiLuong = 850) {
     if (!el || typeof window === "undefined") return;
 
-    // Tôn trọng tùy chọn giảm chuyển động của hệ điều hành
     const giamChuyenDong =
         window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (giamChuyenDong || typeof window.requestAnimationFrame !== "function") {
@@ -587,35 +1008,29 @@ function chayHieuUngDemSo(el, giaTriDich, dinhDang, thoiLuong = 850) {
 }
 
 /**
- * Kích hoạt hiệu ứng xuất hiện mượt khi cuộn trang (Scroll Reveal),
- * thanh tiến trình cuộn, đánh dấu mục điều hướng đang xem và nút quay về đầu trang.
- * @param {Object} duLieu - Đối tượng kết quả tổng hợp từ tongHopDashboard().
+ * Kích hoạt hiệu ứng xuất hiện mượt khi cuộn trang, thanh tiến trình cuộn,
+ * Scroll-Spy cho thanh điều hướng và nút quay về đầu trang.
+ * @param {Object} duLieu - Đối tượng kết quả tổng hợp ban đầu từ tongHopDashboard().
  */
 function khoiTaoHieuUngHienDai(duLieu) {
-    // 1. Hiệu ứng đếm số cho GPA, phần trăm hoàn thành và tín chỉ tích lũy
     const tongSoMon = duLieu.danhSachChiTiet.length;
     const phanTramHoanThanh = tongSoMon > 0 ? Math.round((duLieu.soMonHoanThanh / tongSoMon) * 100) : 0;
 
-    chayHieuUngDemSo(
-        document.getElementById("gpa-value"),
-        duLieu.gpaHe4,
-        (val) => val.toFixed(2),
-        900
-    );
+    chayHieuUngDemSo(document.getElementById("gpa-value"), duLieu.gpaHe4, (val) => val.toFixed(2), 850);
     chayHieuUngDemSo(
         document.getElementById("overall-progress-percent"),
         phanTramHoanThanh,
         (val) => `${Math.round(val)}%`,
-        850
+        800
     );
     chayHieuUngDemSo(
         document.getElementById("total-credits"),
         duLieu.tongTinChiTichLuy,
         (val) => `${Math.round(val)} tín chỉ`,
-        800
+        750
     );
 
-    // 2. Scroll Reveal cho các phân khu chính bằng IntersectionObserver
+    // Scroll Reveal bằng IntersectionObserver
     const cacPhanKhu = document.querySelectorAll(".dashboard-section, .dashboard-aside");
     if ("IntersectionObserver" in window) {
         const quanSat = new IntersectionObserver(
@@ -627,7 +1042,7 @@ function khoiTaoHieuUngHienDai(duLieu) {
                     }
                 });
             },
-            { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+            { threshold: 0.06, rootMargin: "0px 0px -25px 0px" }
         );
 
         cacPhanKhu.forEach((section) => {
@@ -636,7 +1051,7 @@ function khoiTaoHieuUngHienDai(duLieu) {
         });
     }
 
-    // 3. Thanh tiến trình cuộn trang, Scroll-Spy cho Navbar và nút Quay về đầu trang
+    // Thanh tiến trình cuộn, Scroll-Spy và nút Quay về đầu trang
     const thanhCuon = document.getElementById("scroll-progress");
     const nutLenDauTrang = document.getElementById("back-to-top");
     const cacLienKetNav = document.querySelectorAll(".nav-link");
@@ -655,7 +1070,6 @@ function khoiTaoHieuUngHienDai(duLieu) {
             nutLenDauTrang.classList.toggle("back-to-top--visible", viTriCuon > 240);
         }
 
-        // Scroll-Spy: tự động làm nổi bật liên kết tương ứng phân khu đang xem
         let idDangXem = "overview";
         cacPhanKhu.forEach((section) => {
             if (viTriCuon >= section.offsetTop - 150) {
@@ -679,15 +1093,14 @@ function khoiTaoHieuUngHienDai(duLieu) {
     }
 }
 
-// 5. KHỞI CHẠY & KIỂM TRA DỮ LIỆU KHI TẢI TRANG
+// 6. KHỞI CHẠY & KIỂM TRA DỮ LIỆU KHI TẢI TRANG
 
 if (typeof document !== "undefined") {
     document.addEventListener("DOMContentLoaded", () => {
-        const ketQuaDashboard = capNhatGiaoDienGPA(danhSachMonHoc);
-        renderDanhSachMonHoc(ketQuaDashboard, "tat_ca");
-        renderBieuDoDiem(ketQuaDashboard);
-        renderMonDangHoc(ketQuaDashboard);
-        khoiTaoBoLocMonHoc(ketQuaDashboard);
+        const ketQuaDashboard = dongBoToanBoDashboard();
+        khoiTaoFormNhapLieu();
+        khoiTaoThaoTacDanhSach();
+        khoiTaoBoLocVaTimKiem();
         khoiTaoHieuUngHienDai(ketQuaDashboard);
 
         // In bảng tổng quan và danh sách môn học chi tiết ra Console để kiểm tra
