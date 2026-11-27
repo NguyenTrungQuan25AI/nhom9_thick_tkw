@@ -1,154 +1,709 @@
 /**
- * Dữ liệu mẫu cho phân hệ "Dashboard Cá nhân & Lộ trình Học tập (The Learning Path)".
- * Toàn bộ dữ liệu được đóng băng (immutable) nhằm đảm bảo an toàn khi xử lý thuần túy.
+ * ============================================================================
+ * File: js/data.js
+ * Dự án: Dashboard Cá nhân & Lộ trình Học tập (The Learning Path)
+ * Mô tả: Dữ liệu mẫu các môn học, các hàm thuần (Pure Functions) tính GPA hệ 4,
+ *        xếp loại học lực, cấu hình màu trạng thái và hàm render toàn bộ
+ *        Dashboard lên giao diện index.html.
+ * ============================================================================
  */
+
+// 1. DỮ LIỆU MẪU (JSON ARRAY)
+// Danh sách 10 môn học đại học thực tế phục vụ hiển thị và tính toán Dashboard
+const danhSachMonHoc = [
+    {
+        maMon: "IT101",
+        tenMon: "Nhập môn Lập trình",
+        hocKy: 1,
+        soTinChi: 3,
+        diemHe10: 8.8,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT102",
+        tenMon: "Toán rời rạc",
+        hocKy: 1,
+        soTinChi: 3,
+        diemHe10: 7.8,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT201",
+        tenMon: "Cấu trúc dữ liệu & Giải thuật",
+        hocKy: 2,
+        soTinChi: 4,
+        diemHe10: 8.4,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT202",
+        tenMon: "Lập trình Hướng đối tượng",
+        hocKy: 2,
+        soTinChi: 3,
+        diemHe10: 9.1,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT203",
+        tenMon: "Cơ sở dữ liệu",
+        hocKy: 3,
+        soTinChi: 3,
+        diemHe10: 7.2,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT204",
+        tenMon: "Mạng máy tính",
+        hocKy: 3,
+        soTinChi: 3,
+        diemHe10: 6.7,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT301",
+        tenMon: "Lập trình Web",
+        hocKy: 4,
+        soTinChi: 4,
+        diemHe10: 8.6,
+        trangThai: "da_hoan_thanh"
+    },
+    {
+        maMon: "IT302",
+        tenMon: "Trí tuệ nhân tạo",
+        hocKy: 4,
+        soTinChi: 3,
+        diemHe10: null,
+        trangThai: "dang_hoc"
+    },
+    {
+        maMon: "IT303",
+        tenMon: "Công nghệ Phần mềm",
+        hocKy: 4,
+        soTinChi: 3,
+        diemHe10: null,
+        trangThai: "dang_hoc"
+    },
+    {
+        maMon: "IT401",
+        tenMon: "An toàn & Bảo mật Thông tin",
+        hocKy: 5,
+        soTinChi: 3,
+        diemHe10: null,
+        trangThai: "chua_hoc"
+    }
+];
+
+// 2. CÁC HÀM XỬ LÝ LOGIC (PURE FUNCTIONS)
 
 /**
- * Hồ sơ sinh viên mẫu.
- * @type {{
- *   studentId: string,
- *   fullName: string,
- *   major: string,
- *   totalCredits: number,
- *   currentSemester: number
- * }}
+ * Quy đổi điểm hệ 10 sang điểm hệ 4 và điểm chữ theo chuẩn tín chỉ đại học Việt Nam.
+ * @param {number|null} diemHe10 - Điểm tổng kết thang 10 của môn học.
+ * @returns {{ diemHe4: number|null, diemChu: string }} Đối tượng chứa điểm hệ 4 và điểm chữ.
  */
-var STUDENT_PROFILE = Object.freeze({
-  studentId: "SV20240108",
-  fullName: "Nguyễn Minh Khoa",
-  major: "Kỹ thuật Phần mềm",
-  totalCredits: 120,
-  currentSemester: 4,
-});
+function quyDoiDiemHe4(diemHe10) {
+    if (typeof diemHe10 !== "number" || Number.isNaN(diemHe10) || diemHe10 < 0 || diemHe10 > 10) {
+        return { diemHe4: null, diemChu: "Chưa có" };
+    }
 
-/**
- * Danh sách các môn học trong lộ trình học tập.
- * Trạng thái hợp lệ: "completed" | "in-progress" | "upcoming".
- * @type {ReadonlyArray<Readonly<{
- *   id: string,
- *   code: string,
- *   name: string,
- *   credits: number,
- *   score10: number | null,
- *   semester: number,
- *   status: "completed" | "in-progress" | "upcoming"
- * }>>}
- */
-var LEARNING_COURSES = Object.freeze([
-  Object.freeze({
-    id: "c01",
-    code: "INT1001",
-    name: "Nhập môn Lập trình",
-    credits: 3,
-    score10: 8.8,
-    semester: 1,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c02",
-    code: "MAT1002",
-    name: "Toán rời rạc",
-    credits: 3,
-    score10: 7.4,
-    semester: 1,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c03",
-    code: "INT1005",
-    name: "Cấu trúc Dữ liệu & Giải thuật",
-    credits: 4,
-    score10: 8.2,
-    semester: 2,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c04",
-    code: "INT1008",
-    name: "Kiến trúc Máy tính & Hệ điều hành",
-    credits: 3,
-    score10: 6.7,
-    semester: 2,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c05",
-    code: "INT2001",
-    name: "Cơ sở Dữ liệu",
-    credits: 3,
-    score10: 5.8,
-    semester: 3,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c06",
-    code: "INT2004",
-    name: "Lập trình Hướng đối tượng",
-    credits: 3,
-    score10: 9.1,
-    semester: 3,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c07",
-    code: "ENG2002",
-    name: "Tiếng Anh Chuyên ngành CNTT",
-    credits: 2,
-    score10: 4.5,
-    semester: 3,
-    status: "completed",
-  }),
-  Object.freeze({
-    id: "c08",
-    code: "INT2010",
-    name: "Phát triển Ứng dụng Web",
-    credits: 4,
-    score10: null,
-    semester: 4,
-    status: "in-progress",
-  }),
-  Object.freeze({
-    id: "c09",
-    code: "INT2012",
-    name: "Công nghệ Phần mềm",
-    credits: 3,
-    score10: null,
-    semester: 4,
-    status: "in-progress",
-  }),
-  Object.freeze({
-    id: "c10",
-    code: "INT3001",
-    name: "Kiểm thử & Đảm bảo Chất lượng Phần mềm",
-    credits: 3,
-    score10: null,
-    semester: 5,
-    status: "upcoming",
-  }),
-  Object.freeze({
-    id: "c11",
-    code: "INT3005",
-    name: "Kiến trúc Phần mềm & Microservices",
-    credits: 3,
-    score10: null,
-    semester: 5,
-    status: "upcoming",
-  }),
-  Object.freeze({
-    id: "c12",
-    code: "INT4001",
-    name: "Đồ án Tốt nghiệp Kỹ thuật Phần mềm",
-    credits: 6,
-    score10: null,
-    semester: 6,
-    status: "upcoming",
-  }),
-]);
+    if (diemHe10 >= 8.5) return { diemHe4: 4.0, diemChu: "A" };
+    if (diemHe10 >= 8.0) return { diemHe4: 3.5, diemChu: "B+" };
+    if (diemHe10 >= 7.0) return { diemHe4: 3.0, diemChu: "B" };
+    if (diemHe10 >= 6.5) return { diemHe4: 2.5, diemChu: "C+" };
+    if (diemHe10 >= 5.5) return { diemHe4: 2.0, diemChu: "C" };
+    if (diemHe10 >= 5.0) return { diemHe4: 1.5, diemChu: "D+" };
+    if (diemHe10 >= 4.0) return { diemHe4: 1.0, diemChu: "D" };
 
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    STUDENT_PROFILE,
-    LEARNING_COURSES,
-  };
+    return { diemHe4: 0.0, diemChu: "F" };
 }
 
+/**
+ * Tính điểm trung bình tích lũy hệ 4 (GPA) có trọng số theo số tín chỉ
+ * cho các môn đã hoàn thành, làm tròn 2 chữ số thập phân.
+ * @param {Array<Object>} dsMon - Danh sách các môn học.
+ * @returns {number} Giá trị GPA hệ 4 (trả về 0.00 nếu chưa có môn nào hoàn thành).
+ */
+function tinhGPAHe4(dsMon) {
+    if (!Array.isArray(dsMon) || dsMon.length === 0) {
+        return Number((0).toFixed(2));
+    }
+
+    const monDaHoanThanh = dsMon.filter(
+        (mon) =>
+            mon.trangThai === "da_hoan_thanh" &&
+            typeof mon.diemHe10 === "number" &&
+            typeof mon.soTinChi === "number" &&
+            mon.soTinChi > 0
+    );
+
+    if (monDaHoanThanh.length === 0) {
+        return Number((0).toFixed(2));
+    }
+
+    const { tongDiemTrongSo, tongTinChi } = monDaHoanThanh.reduce(
+        (acc, mon) => {
+            const { diemHe4 } = quyDoiDiemHe4(mon.diemHe10);
+            if (diemHe4 !== null) {
+                acc.tongDiemTrongSo += diemHe4 * mon.soTinChi;
+                acc.tongTinChi += mon.soTinChi;
+            }
+            return acc;
+        },
+        { tongDiemTrongSo: 0, tongTinChi: 0 }
+    );
+
+    if (tongTinChi === 0) {
+        return Number((0).toFixed(2));
+    }
+
+    return Number((tongDiemTrongSo / tongTinChi).toFixed(2));
+}
+
+/**
+ * Xếp loại học lực dựa trên điểm GPA hệ 4.
+ * @param {number} gpa - Điểm trung bình tích lũy hệ 4.
+ * @returns {string} Chuỗi xếp loại học lực tương ứng.
+ */
+function xepLoaiHocLuc(gpa) {
+    const diemGPA = Number(gpa);
+
+    if (Number.isNaN(diemGPA) || diemGPA < 2.0) {
+        return "Yếu (Cảnh báo học vụ)";
+    }
+    if (diemGPA >= 3.6) return "Xuất sắc";
+    if (diemGPA >= 3.2) return "Giỏi";
+    if (diemGPA >= 2.5) return "Khá";
+    return "Trung bình";
+}
+
+/**
+ * Trả về cấu hình màu sắc và thông điệp trạng thái theo mức GPA,
+ * hài hòa với bảng màu Teal - Vàng ấm - Kem sáng của Dashboard.
+ * @param {number} gpa - Điểm trung bình tích lũy hệ 4.
+ * @returns {{ textColor: string, bgColor: string, borderColor: string, badgeClass: string, thongBao: string }}
+ */
+function layTrangThaiMauSac(gpa) {
+    const diemGPA = Number(gpa);
+
+    if (Number.isNaN(diemGPA) || diemGPA < 2.0) {
+        return {
+            textColor: "#DC2626",
+            bgColor: "#FEE2E2",
+            borderColor: "#FCA5A5",
+            badgeClass: "status-danger",
+            thongBao: "Cảnh báo: GPA dưới 2.0"
+        };
+    }
+
+    if (diemGPA < 2.5) {
+        return {
+            textColor: "#D97706",
+            bgColor: "#FEF3C7",
+            borderColor: "#FCD34D",
+            badgeClass: "status-warning",
+            thongBao: "Cần cải thiện điểm số"
+        };
+    }
+
+    if (diemGPA < 3.2) {
+        return {
+            textColor: "#B45309",
+            bgColor: "#FEF9C3",
+            borderColor: "#FDE047",
+            badgeClass: "status-good",
+            thongBao: "Tiến độ ổn định"
+        };
+    }
+
+    return {
+        textColor: "#0F766E",
+        bgColor: "#CCFBF1",
+        borderColor: "#5EEAD4",
+        badgeClass: "status-excellent",
+        thongBao: "Phong độ xuất sắc"
+    };
+}
+
+/**
+ * Tổng hợp toàn bộ chỉ số học tập để sẵn sàng đổ dữ liệu ra giao diện Dashboard.
+ * @param {Array<Object>} dsMon - Danh sách các môn học đầu vào.
+ * @returns {{
+ *   gpaHe4: number,
+ *   xepLoai: string,
+ *   mauSac: Object,
+ *   tongTinChiTichLuy: number,
+ *   soMonHoanThanh: number,
+ *   danhSachChiTiet: Array<Object>
+ * }}
+ */
+function tongHopDashboard(dsMon) {
+    const danhSachAnToan = Array.isArray(dsMon) ? dsMon : [];
+    const gpaHe4 = tinhGPAHe4(danhSachAnToan);
+    const xepLoai = xepLoaiHocLuc(gpaHe4);
+    const mauSac = layTrangThaiMauSac(gpaHe4);
+
+    // Gắn thêm điểm hệ 4 và điểm chữ vào bản sao của từng môn học (không thay đổi mảng gốc)
+    const danhSachChiTiet = danhSachAnToan.map((mon) => {
+        const { diemHe4, diemChu } = quyDoiDiemHe4(mon.diemHe10);
+        return {
+            ...mon,
+            diemHe4,
+            diemChu
+        };
+    });
+
+    // Thống kê số môn đã hoàn thành và tổng tín chỉ tích lũy
+    const monHoanThanh = danhSachChiTiet.filter((mon) => mon.trangThai === "da_hoan_thanh");
+    const soMonHoanThanh = monHoanThanh.length;
+    const tongTinChiTichLuy = monHoanThanh.reduce((tong, mon) => tong + (mon.soTinChi || 0), 0);
+
+    return {
+        gpaHe4,
+        xepLoai,
+        mauSac,
+        tongTinChiTichLuy,
+        soMonHoanThanh,
+        danhSachChiTiet
+    };
+}
+
+// 3. HÀM CẬP NHẬT GIAO DIỆN (DOM HELPERS)
+
+/**
+ * Trả về cấu hình hiển thị (nhãn, class CSS, phần trăm tiến độ) cho từng trạng thái môn học.
+ * @param {string} trangThai - Trạng thái môn học ("da_hoan_thanh" | "dang_hoc" | "chua_hoc").
+ * @returns {{ nhan: string, cardClass: string, badgeClass: string, phanTram: number }}
+ */
+function layCauHinhTrangThaiMon(trangThai) {
+    if (trangThai === "da_hoan_thanh") {
+        return {
+            nhan: "Đã hoàn thành",
+            cardClass: "course-card--completed",
+            badgeClass: "status-badge--completed",
+            phanTram: 100
+        };
+    }
+    if (trangThai === "dang_hoc") {
+        return {
+            nhan: "Đang học",
+            cardClass: "course-card--in-progress",
+            badgeClass: "status-badge--in-progress",
+            phanTram: 55
+        };
+    }
+    return {
+        nhan: "Chưa học",
+        cardClass: "course-card--upcoming",
+        badgeClass: "status-badge--upcoming",
+        phanTram: 0
+    };
+}
+
+/**
+ * Cập nhật khối Tổng quan GPA, xếp loại, tín chỉ tích lũy và thanh Progress Bar tổng quan.
+ * @param {Array<Object>} [dsMon=danhSachMonHoc] - Danh sách môn học dùng để hiển thị.
+ * @returns {Object} Đối tượng dữ liệu tổng hợp vừa được cập nhật.
+ */
+function capNhatGiaoDienGPA(dsMon = danhSachMonHoc) {
+    const duLieu = tongHopDashboard(dsMon);
+    const { gpaHe4, xepLoai, mauSac, tongTinChiTichLuy, soMonHoanThanh, danhSachChiTiet } = duLieu;
+    const cacClassTrangThai = ["status-danger", "status-warning", "status-good", "status-excellent"];
+    const tongSoMon = danhSachChiTiet.length;
+    const phanTramHoanThanh = tongSoMon > 0 ? Math.round((soMonHoanThanh / tongSoMon) * 100) : 0;
+
+    // Hàm nội bộ áp dụng màu sắc và class trạng thái cho phần tử
+    const apDungMauTrangThai = (el) => {
+        el.classList.remove(...cacClassTrangThai);
+        el.classList.add(mauSac.badgeClass);
+        el.style.color = mauSac.textColor;
+        el.style.backgroundColor = mauSac.bgColor;
+        el.style.borderColor = mauSac.borderColor;
+    };
+
+    // Cập nhật điểm GPA hệ 4
+    const gpaEl = document.getElementById("gpa-value");
+    if (gpaEl) {
+        gpaEl.textContent = gpaHe4.toFixed(2);
+        gpaEl.style.color = mauSac.textColor;
+    }
+
+    // Cập nhật xếp loại học lực
+    const rankEl = document.getElementById("gpa-rank");
+    if (rankEl) {
+        rankEl.textContent = xepLoai;
+        apDungMauTrangThai(rankEl);
+    }
+
+    // Cập nhật huy hiệu trạng thái GPA
+    const badgeEl = document.getElementById("gpa-badge");
+    if (badgeEl) {
+        badgeEl.textContent = mauSac.thongBao;
+        apDungMauTrangThai(badgeEl);
+    }
+
+    // Cập nhật thông báo chi tiết GPA
+    const messageEl = document.getElementById("gpa-message");
+    if (messageEl) {
+        messageEl.textContent = `${mauSac.thongBao} • Xếp loại ${xepLoai} (${gpaHe4.toFixed(2)}/4.00)`;
+        messageEl.style.color = mauSac.textColor;
+    }
+
+    // Cập nhật tổng tín chỉ tích lũy
+    const creditsEl = document.getElementById("total-credits");
+    if (creditsEl) {
+        creditsEl.textContent = `${tongTinChiTichLuy} tín chỉ`;
+    }
+
+    // Cập nhật số môn đã hoàn thành
+    const completedEl = document.getElementById("completed-courses");
+    if (completedEl) {
+        completedEl.textContent = `${soMonHoanThanh} / ${tongSoMon} môn`;
+    }
+
+    // Cập nhật thanh Progress Bar tổng quan chương trình
+    const percentEl = document.getElementById("overall-progress-percent");
+    if (percentEl) {
+        percentEl.textContent = `${phanTramHoanThanh}%`;
+    }
+
+    const progressBarEl = document.getElementById("overall-progress-bar");
+    if (progressBarEl) {
+        progressBarEl.setAttribute("aria-valuenow", String(phanTramHoanThanh));
+    }
+
+    const progressFillEl = document.getElementById("overall-progress-fill");
+    if (progressFillEl) {
+        progressFillEl.style.setProperty("--percent", `${phanTramHoanThanh}%`);
+    }
+
+    const progressNoteEl = document.getElementById("overall-progress-note");
+    if (progressNoteEl) {
+        progressNoteEl.textContent = `Đã hoàn thành ${soMonHoanThanh}/${tongSoMon} môn (${tongTinChiTichLuy} tín chỉ)`;
+    }
+
+    return duLieu;
+}
+
+/**
+ * Render danh sách các thẻ <article> môn học vào Section "Chi tiết Lộ trình Học tập".
+ * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
+ * @param {string} [boLoc="tat_ca"] - Trạng thái cần lọc ("tat_ca" | "da_hoan_thanh" | "dang_hoc" | "chua_hoc").
+ */
+function renderDanhSachMonHoc(duLieu, boLoc = "tat_ca") {
+    const container = document.getElementById("course-list");
+    if (!container) return;
+
+    const danhSachHienThi =
+        boLoc === "tat_ca"
+            ? duLieu.danhSachChiTiet
+            : duLieu.danhSachChiTiet.filter((mon) => mon.trangThai === boLoc);
+
+    if (danhSachHienThi.length === 0) {
+        container.innerHTML = `
+            <article class="card course-card">
+                <h3 class="course-title">Không có môn học nào trong mục này</h3>
+                <p class="course-desc">Hãy chọn bộ lọc khác để xem đầy đủ lộ trình học tập.</p>
+            </article>
+        `;
+        return;
+    }
+
+    container.innerHTML = danhSachHienThi
+        .map((mon, chiSo) => {
+            const cauHinh = layCauHinhTrangThaiMon(mon.trangThai);
+            const hienThiDiem10 = mon.diemHe10 !== null ? mon.diemHe10.toFixed(1) : "—";
+            const hienThiDiem4 = mon.diemHe4 !== null ? mon.diemHe4.toFixed(1) : "—";
+            const chipHighlight = mon.diemChu === "A" ? "metric-chip--accent" : "";
+            const doTreMs = Math.min(chiSo * 65, 450);
+
+            return `
+                <article class="card course-card course-card--animate ${cauHinh.cardClass}" style="--stagger: ${doTreMs}ms;">
+                    <div class="course-header">
+                        <span class="course-stage">Học kỳ ${mon.hocKy} &bull; ${mon.maMon}</span>
+                        <span class="status-badge ${cauHinh.badgeClass}">${cauHinh.nhan}</span>
+                    </div>
+                    <h3 class="course-title">${mon.tenMon}</h3>
+                    <div class="course-metrics">
+                        <div class="metric-chip">
+                            <span class="metric-label">Tín chỉ</span>
+                            <span class="metric-value">${mon.soTinChi} TC</span>
+                        </div>
+                        <div class="metric-chip">
+                            <span class="metric-label">Hệ 10</span>
+                            <span class="metric-value">${hienThiDiem10}</span>
+                        </div>
+                        <div class="metric-chip ${chipHighlight}">
+                            <span class="metric-label">Hệ 4 / Chữ</span>
+                            <span class="metric-value">${hienThiDiem4} (${mon.diemChu})</span>
+                        </div>
+                    </div>
+                    <div class="course-progress">
+                        <div class="progress-info">
+                            <span class="progress-label">Tiến độ môn học</span>
+                            <span class="progress-value">${cauHinh.phanTram}%</span>
+                        </div>
+                        <div class="progress-bar" role="progressbar" aria-label="Tiến độ môn ${mon.tenMon}" aria-valuenow="${cauHinh.phanTram}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-track">
+                                <div class="progress-fill" style="--percent: ${cauHinh.phanTram}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        })
+        .join("");
+}
+
+/**
+ * Render biểu đồ cột điểm số các môn đã hoàn thành vào Section "Biểu đồ tiến độ".
+ * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
+ */
+function renderBieuDoDiem(duLieu) {
+    const chartBarsEl = document.getElementById("chart-bars");
+    if (!chartBarsEl) return;
+
+    const monCoDiem = duLieu.danhSachChiTiet.filter(
+        (mon) => mon.trangThai === "da_hoan_thanh" && typeof mon.diemHe10 === "number"
+    );
+
+    if (monCoDiem.length === 0) {
+        chartBarsEl.innerHTML = `<p class="section-desc">Chưa có dữ liệu điểm số để hiển thị biểu đồ.</p>`;
+        return;
+    }
+
+    // Tìm điểm cao nhất để làm nổi bật bằng màu vàng ấm
+    const diemCaoNhat = Math.max(...monCoDiem.map((mon) => mon.diemHe10));
+
+    chartBarsEl.innerHTML = monCoDiem
+        .map((mon) => {
+            const phanTram = Math.round(mon.diemHe10 * 10);
+            const laCaoNhat = mon.diemHe10 === diemCaoNhat ? "chart-column--highest" : "";
+            const tenNgan = mon.tenMon.length > 16 ? `${mon.tenMon.slice(0, 15)}…` : mon.tenMon;
+
+            return `
+                <div class="chart-column ${laCaoNhat}" style="--percent: ${phanTram}%;" title="${mon.tenMon}: ${mon.diemHe10.toFixed(1)}/10 (${mon.diemChu})">
+                    <span class="bar-value">${mon.diemHe10.toFixed(1)} (${mon.diemChu})</span>
+                    <div class="bar-track">
+                        <div class="bar-fill"></div>
+                    </div>
+                    <span class="bar-label">
+                        ${mon.maMon}
+                        <span class="bar-sublabel">${tenNgan}</span>
+                    </span>
+                </div>
+            `;
+        })
+        .join("");
+}
+
+/**
+ * Render danh sách các môn đang học & sắp học vào khối <aside> Trọng tâm học kỳ.
+ * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
+ */
+function renderMonDangHoc(duLieu) {
+    const listEl = document.getElementById("active-courses-list");
+    if (!listEl) return;
+
+    const monCanChuY = duLieu.danhSachChiTiet.filter((mon) => mon.trangThai !== "da_hoan_thanh");
+
+    if (monCanChuY.length === 0) {
+        listEl.innerHTML = `
+            <li class="goal-item">
+                <span class="goal-text">Bạn đã hoàn thành toàn bộ các môn trong lộ trình!</span>
+                <span class="goal-tag">100%</span>
+            </li>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = monCanChuY
+        .map((mon) => {
+            const laChuaHoc = mon.trangThai === "chua_hoc";
+            const itemClass = laChuaHoc ? "goal-item--upcoming" : "";
+            const nhanTrangThai = laChuaHoc ? `HK${mon.hocKy} • Sắp học` : `HK${mon.hocKy} • Đang học`;
+
+            return `
+                <li class="goal-item ${itemClass}">
+                    <span class="goal-text"><strong>${mon.maMon}</strong> – ${mon.tenMon} (${mon.soTinChi} TC)</span>
+                    <span class="goal-tag">${nhanTrangThai}</span>
+                </li>
+            `;
+        })
+        .join("");
+}
+
+/**
+ * Gắn sự kiện click cho các nút bộ lọc trạng thái môn học trên giao diện.
+ * @param {Object} duLieu - Đối tượng kết quả trả về từ tongHopDashboard().
+ */
+function khoiTaoBoLocMonHoc(duLieu) {
+    const cacNutLoc = document.querySelectorAll(".filter-btn");
+    if (cacNutLoc.length === 0) return;
+
+    cacNutLoc.forEach((nut) => {
+        nut.addEventListener("click", () => {
+            cacNutLoc.forEach((btn) => btn.classList.remove("filter-btn--active"));
+            nut.classList.add("filter-btn--active");
+
+            const giaTriLoc = nut.getAttribute("data-filter") || "tat_ca";
+            renderDanhSachMonHoc(duLieu, giaTriLoc);
+        });
+    });
+}
+
+// 4. HIỆU ỨNG TƯƠNG TÁC HIỆN ĐẠI (COUNT-UP, SCROLL REVEAL, SCROLL-SPY, BACK TO TOP)
+
+/**
+ * Tạo hiệu ứng đếm số mượt mà (Ease-Out Cubic) cho các chỉ số GPA, phần trăm và tín chỉ.
+ * @param {HTMLElement|null} el - Phần tử DOM hiển thị con số.
+ * @param {number} giaTriDich - Giá trị đích cần đếm tới.
+ * @param {Function} dinhDang - Hàm định dạng chuỗi hiển thị từ giá trị hiện tại.
+ * @param {number} [thoiLuong=850] - Thời lượng hiệu ứng (ms).
+ */
+function chayHieuUngDemSo(el, giaTriDich, dinhDang, thoiLuong = 850) {
+    if (!el || typeof window === "undefined") return;
+
+    // Tôn trọng tùy chọn giảm chuyển động của hệ điều hành
+    const giamChuyenDong =
+        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (giamChuyenDong || typeof window.requestAnimationFrame !== "function") {
+        el.textContent = dinhDang(giaTriDich);
+        return;
+    }
+
+    const thoiDiemBatDau = performance.now();
+    const buocCapNhat = (thoiDiemHienTai) => {
+        const tienTrinh = Math.min((thoiDiemHienTai - thoiDiemBatDau) / thoiLuong, 1);
+        const heSoMuot = 1 - Math.pow(1 - tienTrinh, 3);
+        el.textContent = dinhDang(giaTriDich * heSoMuot);
+
+        if (tienTrinh < 1) {
+            window.requestAnimationFrame(buocCapNhat);
+        } else {
+            el.textContent = dinhDang(giaTriDich);
+        }
+    };
+
+    window.requestAnimationFrame(buocCapNhat);
+}
+
+/**
+ * Kích hoạt hiệu ứng xuất hiện mượt khi cuộn trang (Scroll Reveal),
+ * thanh tiến trình cuộn, đánh dấu mục điều hướng đang xem và nút quay về đầu trang.
+ * @param {Object} duLieu - Đối tượng kết quả tổng hợp từ tongHopDashboard().
+ */
+function khoiTaoHieuUngHienDai(duLieu) {
+    // 1. Hiệu ứng đếm số cho GPA, phần trăm hoàn thành và tín chỉ tích lũy
+    const tongSoMon = duLieu.danhSachChiTiet.length;
+    const phanTramHoanThanh = tongSoMon > 0 ? Math.round((duLieu.soMonHoanThanh / tongSoMon) * 100) : 0;
+
+    chayHieuUngDemSo(
+        document.getElementById("gpa-value"),
+        duLieu.gpaHe4,
+        (val) => val.toFixed(2),
+        900
+    );
+    chayHieuUngDemSo(
+        document.getElementById("overall-progress-percent"),
+        phanTramHoanThanh,
+        (val) => `${Math.round(val)}%`,
+        850
+    );
+    chayHieuUngDemSo(
+        document.getElementById("total-credits"),
+        duLieu.tongTinChiTichLuy,
+        (val) => `${Math.round(val)} tín chỉ`,
+        800
+    );
+
+    // 2. Scroll Reveal cho các phân khu chính bằng IntersectionObserver
+    const cacPhanKhu = document.querySelectorAll(".dashboard-section, .dashboard-aside");
+    if ("IntersectionObserver" in window) {
+        const quanSat = new IntersectionObserver(
+            (entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("is-visible");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+        );
+
+        cacPhanKhu.forEach((section) => {
+            section.classList.add("reveal");
+            quanSat.observe(section);
+        });
+    }
+
+    // 3. Thanh tiến trình cuộn trang, Scroll-Spy cho Navbar và nút Quay về đầu trang
+    const thanhCuon = document.getElementById("scroll-progress");
+    const nutLenDauTrang = document.getElementById("back-to-top");
+    const cacLienKetNav = document.querySelectorAll(".nav-link");
+
+    const capNhatTheoViTriCuon = () => {
+        const viTriCuon = window.scrollY || document.documentElement.scrollTop;
+        const chieuCaoCoTheCuon =
+            document.documentElement.scrollHeight - document.documentElement.clientHeight;
+
+        if (thanhCuon && chieuCaoCoTheCuon > 0) {
+            const tyLeCuon = Math.min((viTriCuon / chieuCaoCoTheCuon) * 100, 100);
+            thanhCuon.style.width = `${tyLeCuon}%`;
+        }
+
+        if (nutLenDauTrang) {
+            nutLenDauTrang.classList.toggle("back-to-top--visible", viTriCuon > 240);
+        }
+
+        // Scroll-Spy: tự động làm nổi bật liên kết tương ứng phân khu đang xem
+        let idDangXem = "overview";
+        cacPhanKhu.forEach((section) => {
+            if (viTriCuon >= section.offsetTop - 150) {
+                idDangXem = section.id;
+            }
+        });
+
+        cacLienKetNav.forEach((link) => {
+            const laMucHienTai = link.getAttribute("href") === `#${idDangXem}`;
+            link.classList.toggle("nav-link--active", laMucHienTai);
+        });
+    };
+
+    window.addEventListener("scroll", capNhatTheoViTriCuon, { passive: true });
+    capNhatTheoViTriCuon();
+
+    if (nutLenDauTrang) {
+        nutLenDauTrang.addEventListener("click", () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    }
+}
+
+// 5. KHỞI CHẠY & KIỂM TRA DỮ LIỆU KHI TẢI TRANG
+
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", () => {
+        const ketQuaDashboard = capNhatGiaoDienGPA(danhSachMonHoc);
+        renderDanhSachMonHoc(ketQuaDashboard, "tat_ca");
+        renderBieuDoDiem(ketQuaDashboard);
+        renderMonDangHoc(ketQuaDashboard);
+        khoiTaoBoLocMonHoc(ketQuaDashboard);
+        khoiTaoHieuUngHienDai(ketQuaDashboard);
+
+        // In bảng tổng quan và danh sách môn học chi tiết ra Console để kiểm tra
+        console.log("=== TỔNG HỢP DASHBOARD HỌC TẬP ===");
+        console.table([
+            {
+                "GPA Hệ 4": ketQuaDashboard.gpaHe4.toFixed(2),
+                "Xếp loại": ketQuaDashboard.xepLoai,
+                "Tín chỉ tích lũy": ketQuaDashboard.tongTinChiTichLuy,
+                "Số môn hoàn thành": ketQuaDashboard.soMonHoanThanh,
+                "Trạng thái": ketQuaDashboard.mauSac.thongBao,
+                "Class màu": ketQuaDashboard.mauSac.badgeClass
+            }
+        ]);
+
+        console.log("=== DANH SÁCH MÔN HỌC CHI TIẾT ===");
+        console.table(ketQuaDashboard.danhSachChiTiet);
+    });
+}
