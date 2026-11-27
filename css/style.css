@@ -183,6 +183,7 @@ code {
 }
 
 .overview-section,
+.grade-input-section,
 .path-section {
     grid-column: 1 / -1;
 }
@@ -1082,6 +1083,372 @@ code {
 
     .bar-chart {
         min-width: 480px;
+    }
+}
+
+/* 8. Form nhập liệu, Thanh tìm kiếm/lọc & Nút thao tác Sửa/Xóa môn học */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.grade-form-card {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAF8F5 100%);
+    border-top: 4px solid #0F766E;
+}
+
+.grade-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+/* Lưới ô nhập liệu tự cân đối 1 hàng trên màn hình lớn và xếp dọc trên thiết bị nhỏ */
+.form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 0.85fr 1.2fr 0.95fr;
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.form-label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+}
+
+.required-mark {
+    color: #DC2626;
+}
+
+.form-control {
+    width: 100%;
+    height: 42px;
+    padding: 0.55rem 0.85rem;
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    background-color: #FFFFFF;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base);
+}
+
+.form-control::placeholder {
+    color: #8C9A9D;
+}
+
+.form-control:hover:not(:disabled) {
+    border-color: #9FB9BC;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #0F766E;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+    background-color: #FFFFFF;
+}
+
+.form-control:disabled {
+    background-color: #F2ECE3;
+    color: #8A9698;
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Nút bấm chính (Teal) và nút phụ (Vàng ấm / Kem) */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn--primary {
+    background: linear-gradient(135deg, #0F766E 0%, var(--color-primary-dark) 100%);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.24);
+}
+
+.btn--primary:hover,
+.btn--primary:focus-visible {
+    background: linear-gradient(135deg, #115E59 0%, #00353D 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.32);
+    outline: none;
+}
+
+.btn--secondary {
+    background-color: #FAF8F5;
+    color: #B45309;
+    border-color: rgba(217, 119, 6, 0.45);
+}
+
+.btn--secondary:hover,
+.btn--secondary:focus-visible {
+    background-color: #FEF3C7;
+    color: #92400E;
+    border-color: #D97706;
+    transform: translateY(-1px);
+    outline: none;
+}
+
+/* Hộp thông báo xác nhận / cảnh báo lỗi ngay dưới form */
+.form-message {
+    margin-top: 1rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.form-message:empty {
+    display: none;
+    margin-top: 0;
+}
+
+.form-message--success {
+    color: #0F766E;
+    background-color: #CCFBF1;
+    border-color: #5EEAD4;
+}
+
+.form-message--error {
+    color: #DC2626;
+    background-color: #FEE2E2;
+    border-color: #FCA5A5;
+}
+
+.form-message--info {
+    color: #B45309;
+    background-color: #FEF3C7;
+    border-color: #FCD34D;
+}
+
+/* Thanh công cụ tìm kiếm & lọc trạng thái phía trên danh sách môn học */
+.course-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.search-box {
+    min-width: 230px;
+    flex: 1 1 230px;
+}
+
+.filter-select-box {
+    min-width: 175px;
+}
+
+.toolbar-search,
+.toolbar-select {
+    height: 40px;
+    font-size: 0.88rem;
+}
+
+.toolbar-count {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #0F766E;
+    background-color: #CCFBF1;
+    border: 1px solid #99F6E4;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+}
+
+/* Khu vực nút thao tác Sửa điểm & Xóa trên từng thẻ môn học */
+.course-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--color-border);
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.42rem 0.82rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+}
+
+.action-btn:active {
+    transform: scale(0.96);
+}
+
+.action-btn--edit {
+    color: #0F766E;
+    background-color: #F0FDFA;
+    border-color: rgba(15, 118, 110, 0.32);
+}
+
+.action-btn--edit:hover,
+.action-btn--edit:focus-visible {
+    background-color: #D97706;
+    color: #FFFFFF;
+    border-color: #D97706;
+    outline: none;
+}
+
+.action-btn--delete {
+    color: #7F1D1D;
+    background-color: #FAF8F5;
+    border-color: #E6DDD0;
+}
+
+.action-btn--delete:hover,
+.action-btn--delete:focus-visible {
+    background-color: #DC2626;
+    color: #FFFFFF;
+    border-color: #DC2626;
+    outline: none;
+}
+
+/* Khung chỉnh sửa điểm & trạng thái trực tiếp trên thẻ môn học */
+.course-edit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.85rem;
+    background-color: #FAF8F5;
+    border: 1.5px solid rgba(15, 118, 110, 0.35);
+    border-radius: var(--radius-sm);
+}
+
+.course-edit-row {
+    display: grid;
+    grid-template-columns: 1.25fr 0.85fr;
+    gap: 0.6rem;
+}
+
+.course-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.course-edit-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+}
+
+.course-edit-control {
+    height: 36px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.84rem;
+}
+
+.course-edit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.action-btn--save {
+    background-color: #0F766E;
+    color: #FFFFFF;
+    border-color: #0F766E;
+}
+
+.action-btn--save:hover {
+    background-color: #115E59;
+}
+
+.action-btn--cancel {
+    background-color: #FFFFFF;
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
+}
+
+.action-btn--cancel:hover {
+    background-color: var(--color-surface-soft);
+    color: var(--color-text);
+}
+
+/* Responsive cho Form nhập liệu & Thanh công cụ lọc */
+@media (max-width: 1024px) {
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .form-group--wide {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .course-toolbar {
+        width: 100%;
+    }
+
+    .search-box,
+    .filter-select-box {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .course-edit-row {
+        grid-template-columns: 1fr;
     }
 }
 
